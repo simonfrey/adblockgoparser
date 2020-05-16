@@ -1,4 +1,4 @@
-module github.com/scrapinghub/adblockgoparser
+module github.com/simonfrey/adblockgoparser
 
 go 1.13
 
