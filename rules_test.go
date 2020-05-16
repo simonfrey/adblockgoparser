@@ -28,10 +28,10 @@ func newRuleSetFromList(rulesStr []string) (*RuleSet, error) {
 		rule, err := ParseRule(ruleStr)
 		switch {
 		case err == nil:
-			if !rule.isException {
+			if !rule.IsException {
 				ruleSet.black.Add(rule)
 			}
-			if rule.isException {
+			if rule.IsException {
 				ruleSet.white.Add(rule)
 			}
 		case errors.Is(err, ErrSkipComment),
@@ -107,7 +107,7 @@ func TestExceptionRule(t *testing.T) {
 	ruleSet, err := newRuleSetFromList(rules)
 	assert.NoError(t, err)
 	rule := ruleSet.white.addressPartMatcher.next['h'].next['i'].next['/'].rules[0]
-	assert.Equal(t, "hi/", rule.ruleText)
+	assert.Equal(t, "hi/", rule.RuleText)
 }
 
 func TestMatchCasePath(t *testing.T) {
@@ -436,5 +436,5 @@ func TestRegex(t *testing.T) {
 func TestRegexLooksLikePath(t *testing.T) {
 	ruleText := "/hi/"
 	rule, _ := ParseRule(ruleText)
-	assert.Equal(t, rule.ruleType, regexRule)
+	assert.Equal(t, rule.RuleType, RegexRule)
 }

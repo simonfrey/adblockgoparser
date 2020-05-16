@@ -20,18 +20,18 @@ type pathMatcher struct {
 // Add Rule in a structured way to be able to match with Request
 func (m *matcher) Add(rule *RuleAdBlock) {
 	var runes []rune
-	text := strings.ToLower(rule.ruleText)
-	switch rule.ruleType {
-	case addressPart:
+	text := strings.ToLower(rule.RuleText)
+	switch rule.RuleType {
+	case AddressPart:
 		runes = []rune(text)
 		m.addressPartMatcher.addPath(runes, rule)
-	case domainName:
+	case DomainName:
 		runes = []rune(text[2 : len(text)-1])
 		m.domainNameMatcher.addPath(runes, rule)
-	case exactAddress:
+	case ExactAddress:
 		runes = []rune(text[1 : len(text)-1])
 		m.exactAddressMatcher.addPath(runes, rule)
-	case regexRule:
+	case RegexRule:
 		m.regexpRules = append(m.regexpRules, rule)
 	}
 }
@@ -82,7 +82,7 @@ func (m *matcher) Match(req *Request) bool {
 	// Match direct regexp
 	URL := req.URL.String()
 	for _, rule := range m.regexpRules {
-		if rule.regex.MatchString(URL) {
+		if rule.Regex.MatchString(URL) {
 			return true
 		}
 	}
@@ -94,7 +94,7 @@ func (pm *pathMatcher) findNext(runes []rune, req *Request) bool {
 	// If find some rules in the current rune, try to match
 	if len(pm.rules) != 0 {
 		for _, rule := range pm.rules {
-			if matchDomains(rule, req) && matchOptions(rule, req) && rule.regex.MatchString(req.URL.String()) { // This line need to be removed and add simpler validation
+			if matchDomains(rule, req) && matchOptions(rule, req) && rule.Regex.MatchString(req.URL.String()) { // This line need to be removed and add simpler validation
 				return true
 			}
 		}
@@ -130,16 +130,16 @@ func matchDomains(rule *RuleAdBlock, req *Request) bool {
 	allowedDomain := true
 	matchCase := false
 	hostname := req.URL.Hostname()
-	if _, matchCase = rule.options["match-case"]; !matchCase {
+	if _, matchCase = rule.Options["match-case"]; !matchCase {
 		hostname = strings.ToLower(hostname)
 	}
-	if rule.ruleType == domainName {
-		if !strings.HasSuffix(hostname, rule.ruleText[2:len(rule.ruleText)-1]) {
+	if rule.RuleType == DomainName {
+		if !strings.HasSuffix(hostname, rule.RuleText[2:len(rule.RuleText)-1]) {
 			allowedDomain = false
 		}
 	}
-	if len(rule.domains) > 0 {
-		for domain, active := range rule.domains {
+	if len(rule.Domains) > 0 {
+		for domain, active := range rule.Domains {
 			if !matchCase {
 				domain = strings.ToLower(domain)
 			}
@@ -159,9 +159,9 @@ func matchOptions(rule *RuleAdBlock, req *Request) bool {
 		path = path[:len(path)-len(".gz")]
 	}
 
-	if len(rule.options) > 0 {
+	if len(rule.Options) > 0 {
 		matchOption = false
-		for option, active := range rule.options {
+		for option, active := range rule.Options {
 			switch {
 			case option == "xmlhttprequest":
 			case option == "third-party":

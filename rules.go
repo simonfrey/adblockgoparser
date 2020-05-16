@@ -53,20 +53,20 @@ type Request struct {
 type RuleType int
 
 const (
-	addressPart RuleType = iota
-	domainName
-	exactAddress
-	regexRule
+	AddressPart RuleType = iota
+	DomainName
+	ExactAddress
+	RegexRule
 )
 
-// RuleAdBlock object containing the rule string generated regex and parsed options
+// RuleAdBlock object containing the rule string generated Regex and parsed Options
 type RuleAdBlock struct {
-	ruleText    string
-	regex       *regexp.Regexp
-	options     map[string]bool
-	isException bool
-	domains     map[string]bool
-	ruleType    RuleType
+	RuleText    string
+	Regex       *regexp.Regexp
+	Options     map[string]bool
+	IsException bool
+	Domains     map[string]bool
+	RuleType    RuleType
 }
 
 // ParseRule parse and create a RuleAdBlock from the string
@@ -86,19 +86,19 @@ func ParseRule(ruleText string) (*RuleAdBlock, error) {
 	}
 
 	rule := &RuleAdBlock{
-		ruleText: ruleText,
-		domains:  map[string]bool{},
-		options:  map[string]bool{},
+		RuleText: ruleText,
+		Domains:  map[string]bool{},
+		Options:  map[string]bool{},
 	}
 
-	rule.isException = strings.HasPrefix(rule.ruleText, "@@")
-	if rule.isException {
-		rule.ruleText = rule.ruleText[2:]
+	rule.IsException = strings.HasPrefix(rule.RuleText, "@@")
+	if rule.IsException {
+		rule.RuleText = rule.RuleText[2:]
 	}
 
-	if strings.Contains(rule.ruleText, "$") {
-		parts := strings.SplitN(rule.ruleText, "$", 2)
-		rule.ruleText = parts[0]
+	if strings.Contains(rule.RuleText, "$") {
+		parts := strings.SplitN(rule.RuleText, "$", 2)
+		rule.RuleText = parts[0]
 
 		for _, option := range strings.Split(parts[1], ",") {
 			optionNegative := !strings.HasPrefix(option, "~")
@@ -109,36 +109,36 @@ func ParseRule(ruleText string) (*RuleAdBlock, error) {
 			case strings.HasPrefix(option, "domain="):
 				for _, domain := range strings.Split(option[len("domain="):], "|") {
 					name := strings.TrimSpace(domain)
-					rule.domains[strings.TrimPrefix(name, "~")] = !strings.HasPrefix(name, "~")
+					rule.Domains[strings.TrimPrefix(name, "~")] = !strings.HasPrefix(name, "~")
 				}
 			case !supportedOption:
 				return nil, ErrUnsupportedRule
 			default:
-				rule.options[option] = optionNegative
+				rule.Options[option] = optionNegative
 			}
 		}
 	}
 
-	rule.ruleType = addressPart
-	if strings.HasPrefix(rule.ruleText, "||") && strings.HasSuffix(rule.ruleText, "^") {
-		rule.ruleType = domainName
+	rule.RuleType = AddressPart
+	if strings.HasPrefix(rule.RuleText, "||") && strings.HasSuffix(rule.RuleText, "^") {
+		rule.RuleType = DomainName
 	}
 
-	if strings.HasPrefix(rule.ruleText, "|") && strings.HasSuffix(rule.ruleText, "|") {
-		rule.ruleType = exactAddress
+	if strings.HasPrefix(rule.RuleText, "|") && strings.HasSuffix(rule.RuleText, "|") {
+		rule.RuleType = ExactAddress
 	}
 
 	// The empty rule means the will block everything
 	// /{anything}/ mean regular expression. or define some other pattern to conflict to a path like /anything/
-	if rule.ruleText == "" || (strings.HasPrefix(rule.ruleText, "/") && strings.HasSuffix(rule.ruleText, "/")) {
-		rule.ruleType = regexRule
+	if rule.RuleText == "" || (strings.HasPrefix(rule.RuleText, "/") && strings.HasSuffix(rule.RuleText, "/")) {
+		rule.RuleType = RegexRule
 	}
 
 	re, err := regexp.Compile(ruleToRegexp(rule))
 	if err != nil {
-		return nil, fmt.Errorf("Cannot compile regex: %w", err)
+		return nil, fmt.Errorf("Cannot compile Regex: %w", err)
 	}
-	rule.regex = re
+	rule.Regex = re
 	return rule, nil
 }
 
@@ -150,10 +150,10 @@ type RuleSet struct {
 
 // AddRule Adds rule in the correct matcher
 func (ruleSet *RuleSet) AddRule(rule *RuleAdBlock) {
-	if !rule.isException {
+	if !rule.IsException {
 		ruleSet.black.Add(rule)
 	}
-	if rule.isException {
+	if rule.IsException {
 		ruleSet.white.Add(rule)
 	}
 }
@@ -192,7 +192,7 @@ func CreateRuleSet() *RuleSet {
 }
 
 func ruleToRegexp(r *RuleAdBlock) string {
-	text := r.ruleText
+	text := r.RuleText
 	// Convert AdBlock rule to a regular expression.
 	if text == "" {
 		return ".*"
@@ -204,7 +204,7 @@ func ruleToRegexp(r *RuleAdBlock) string {
 		return text[1 : length-1]
 	}
 
-	// escape special regex characters
+	// escape special Regex characters
 	rule := text
 	rule = regexp.QuoteMeta(rule)
 
@@ -213,10 +213,10 @@ func ruleToRegexp(r *RuleAdBlock) string {
 	rule = strings.ReplaceAll(rule, `\^`, `^`)
 	rule = strings.ReplaceAll(rule, `\*`, `*`)
 
-	// XXX: the resulting regex must use non-capturing groups (?:
+	// XXX: the resulting Regex must use non-capturing groups (?:
 	// for performance reasons; also, there is a limit on number
 	// of capturing groups, no using them would prevent building
-	// a single regex out of several rules.
+	// a single Regex out of several rules.
 
 	// Separator character ^ matches anything but a letter, a digit, or
 	// one of the following: _ - . %. The end of the address is also
@@ -235,7 +235,7 @@ func ruleToRegexp(r *RuleAdBlock) string {
 	// || in the beginning means beginning of the domain name
 	if rule[:2] == "||" {
 		// XXX: it is better to use urlparse for such things,
-		// but urlparse doesn't give us a single regex.
+		// but urlparse doesn't give us a single Regex.
 		// Regex is based on http://tools.ietf.org/html/rfc3986#appendix-B
 		if len(rule) > 2 {
 			//       |            | complete part       |
@@ -247,8 +247,8 @@ func ruleToRegexp(r *RuleAdBlock) string {
 		rule = "^" + rule[1:]
 	}
 
-	// If rule is case insensitive, use it on regex
-	if _, ok := r.options["match-case"]; !ok {
+	// If rule is case insensitive, use it on Regex
+	if _, ok := r.Options["match-case"]; !ok {
 		rule = "(?i)" + rule
 	}
 
